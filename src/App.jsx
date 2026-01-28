@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getTransaction, createTransaction, deleteTransaction } from './api'
 
 function App() {
   const [transactions, setTransactions] = useState([])
@@ -6,8 +7,19 @@ function App() {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('expense')
   const [date, setDate] = useState('')
+  const [filter, setFilter] = useState('all')
 
-  const handleSubmit = (e) => {
+  const fetchTransaction = async () => {
+    try{
+      const data = await getTransaction()
+      setTransactions(data)
+    } catch(error ){
+      console.log('Error fetching transaction: ', error)
+    }
+  }
+
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!description.trim()) {
       alert('Please add a description')
@@ -18,22 +30,34 @@ function App() {
       return
     }
     const newTransaction = {
-      id: Date.now(),
       description: description,
       amount: parseFloat(amount),
       category: category,
       date: date || new Date().toISOString().split('T')[0],
     }
-    setTransactions([...transactions, newTransaction])
-    setDescription('')
-    setAmount('')
-    setCategory('income')
-    setDate('dd-mm-yyyy')
+    try{
+      const savedTransaction = await createTransaction(newTransaction)
+      setTransactions([...transactions, savedTransaction])
+      setDescription('')
+      setAmount('')
+      setCategory('income')
+      setDate('')
+    } catch(error){
+      console.log('Error creating transaction:: ', error)
+      alert('failed to create transaction')
+    }
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
-      setTransactions(transactions.filter(transaction => transaction.id !== id))
+      try{
+        deleteTransaction(id)
+        setTransactions(transactions.filter(transaction => transaction._id !== id))
+      } catch(error){
+        console.log('Error deleting transaction: ', error)
+        alert('Failed to delete transaction.')
+      }
+
     }
   }
 
@@ -46,6 +70,16 @@ function App() {
   }, 0)
 
   const balance = totalIncome - totalExpenses
+
+  const filteredTransactions = transactions.filter(transaction => {
+    if (filter === 'all') return true
+    return transaction.category === filter
+  }) 
+
+  useEffect(() =>{
+    fetchTransaction()
+  }, [])
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4">
@@ -145,7 +179,18 @@ function App() {
 
         {/* Transactions Table */}
         <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-slate-800 mb-6">All Transactions</h2>
+          {/* <label htmlFor="filter">Filter</label> */}
+          <select name="filter" id="" onChange={(e) => setFilter(e.target.value)} value={filter}
+            className=" px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-slate-700"
+            >
+            <option value="all">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+
+        </div>
           {transactions.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-500 text-lg">No transactions yet</p>
@@ -164,7 +209,7 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((transaction, index) => (
+                  {filteredTransactions.map((transaction, index) => (
                     <tr
                       key={transaction.id}
                       className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
@@ -186,7 +231,7 @@ function App() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-slate-600 text-sm">
-                        {transaction.date.split('-').reverse().join('-') || 'N/A'}
+                        {transaction.date || 'N/A'}
                       </td>
                       <td className="py-4 px-4 text-right">
                         <p
