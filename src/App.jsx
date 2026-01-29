@@ -9,12 +9,21 @@ function App() {
   const [date, setDate] = useState('')
   const [filter, setFilter] = useState('all')
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}-${month}-${year}`
+  }
+
   const fetchTransaction = async () => {
     try{
       const data = await getTransaction()
-      setTransactions(data)
-    } catch(error ){
+      setTransactions(Array.isArray(data) ? data : [])
+    } catch(error){
       console.log('Error fetching transaction: ', error)
+      setTransactions([])
     }
   }
 
@@ -231,7 +240,7 @@ function App() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-slate-600 text-sm">
-                        {transaction.date || 'N/A'}
+                      {formatDate(transaction.date)}
                       </td>
                       <td className="py-4 px-4 text-right">
                         <p
@@ -245,7 +254,7 @@ function App() {
                       <td className="py-4 px-4 text-center">
                         <button
                           className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm hover:shadow"
-                          onClick={() => handleDelete(transaction.id)}
+                          onClick={() => handleDelete(transaction._id)}
                         >
                           Delete
                         </button>
