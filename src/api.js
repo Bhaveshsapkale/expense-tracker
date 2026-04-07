@@ -1,4 +1,4 @@
-const API_URL = 'https://expense-tracker-lj0q.onrender.com'
+const API_URL = 'https://expense-tracker-1-7eeu.onrender.com/api/transaction'
 
 export const getTransaction = async () => {
     const response = await fetch(API_URL)
